@@ -64,4 +64,41 @@ Function Invoke-NonQuery
     }
 }
 
+Function Invoke-Query
+{
+    Param(
+        [Parameter(Mandatory=$TRUE)][string]$serverName,
+        [Parameter(Mandatory=$TRUE)][string]$userName,
+        [Parameter(Mandatory=$TRUE)][string]$password,
+        [Parameter(Mandatory=$TRUE)][string]$dbName,
+        [Parameter(Mandatory=$TRUE)][string]$query
+    )
+
+
+    LoadAssembly
+    $dbconnect = New-Object MySql.Data.MySqlClient.MySqlConnection
+    $dbconnect.ConnectionString = "server=$serverName;user id=$userName;password=$password;database=$dbName;pooling=false"
+
+    Try
+    {
+        $dbconnect.Open()
+        $sql = New-Object MySql.Data.MySqlClient.MySqlCommand
+        $sql.Connection = $dbconnect
+        $sql.CommandText = $query
+        return $sql.ExecuteReader()
+    }
+    Catch
+    {
+        Throw
+    }
+    Finally
+    {
+        if($dbconnect -ne $null)
+        {
+            $dbconnect.Close()
+        }
+    }
+}
+
 Export-ModuleMember -Function Invoke-NonQuery
+Export-ModuleMember -Function Invoke-Query
