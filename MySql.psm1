@@ -100,5 +100,36 @@ Function Invoke-Query
     }
 }
 
+Function Get-PSObjectFromDataRecords
+{
+    Param(
+        [Parameter(Mandatory=$TRUE)]$records
+    )
+
+    if($records.count -gt 0)
+    {
+        # property bag for column names
+        $properties = @{}
+    
+        # add properties to the bag
+        for($i=0;$i -lt $records[0].FieldCount;$i++)
+        {
+            $properties.Add($records[0].GetName($i),$null)
+        }
+
+        # iterate results, set up the customobject, pop to the pipeline
+        foreach($result in $records)
+        {
+            $resultObject = New-Object -TypeName PSObject -Property $properties
+            for($i=0;$i -lt $result.FieldCount;$i++)
+            {
+                $resultObject.($result.GetName($i)) = $result.GetValue($i)
+            }
+            $resultObject
+        }
+    }
+}
+
 Export-ModuleMember -Function Invoke-NonQuery
 Export-ModuleMember -Function Invoke-Query
+Export-ModuleMember -Function Get-PSObjectFromDataRecords
