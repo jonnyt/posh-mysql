@@ -1,9 +1,4 @@
-﻿<#
-    http://www.jaredperry.ca/2009/06/powershell-and-mysql/
-    vwiki.co.uk/MySQL_and_PowerShell
-#>
-
-Function LoadAssembly
+﻿Function LoadAssembly
 {
     # We need to know the default installation location for 32-bit or 64-bit
     $query = Get-WmiObject -query "Select AddressWidth from Win32_Processor" | Select-Object -First 1
@@ -71,9 +66,9 @@ Function Invoke-Query
         [Parameter(Mandatory=$TRUE)][string]$userName,
         [Parameter(Mandatory=$TRUE)][string]$password,
         [Parameter(Mandatory=$TRUE)][string]$dbName,
-        [Parameter(Mandatory=$TRUE)][string]$query
+        [Parameter(Mandatory=$TRUE)][string]$query,
+        [Parameter(Mandatory=$FALSE)][string]$queryTimeoutSeconds=60
     )
-
 
     LoadAssembly
     $dbconnect = New-Object MySql.Data.MySqlClient.MySqlConnection
@@ -85,6 +80,7 @@ Function Invoke-Query
         $sql = New-Object MySql.Data.MySqlClient.MySqlCommand
         $sql.Connection = $dbconnect
         $sql.CommandText = $query
+        $sql.CommandTimeout = $queryTimeoutSeconds
         return $sql.ExecuteReader()
     }
     Catch
@@ -106,15 +102,27 @@ Function Get-PSObjectFromDataRecords
         [Parameter(Mandatory=$TRUE)]$records
     )
 
-    if($records.count -gt 0)
+    if($records.GetType().BaseType.Name -eq "DbDataRecord" -or $records.count -gt 0)
     {
         # property bag for column names
         $properties = @{}
     
         # add properties to the bag
-        for($i=0;$i -lt $records[0].FieldCount;$i++)
+        if($records.GetType().BaseType.Name -eq "DbDataRecord")
         {
-            $properties.Add($records[0].GetName($i),$null)
+            # single record
+            for($i=0;$i -lt $records.FieldCount;$i++)
+            {
+                $properties.Add($records.GetName($i),$null)
+            }   
+        }
+        else
+        {
+            # multiple records
+            for($i=0;$i -lt $records[0].FieldCount;$i++)
+            {
+                $properties.Add($records[0].GetName($i),$null)
+            }
         }
 
         # iterate results, set up the customobject, pop to the pipeline
